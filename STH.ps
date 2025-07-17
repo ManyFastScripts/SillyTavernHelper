@@ -1,0 +1,116 @@
+# MFS Powered
+# Written by Cartethyia
+
+$STREPO = "https://github.com/SillyTavern/SillyTavern.git"
+$STREPO_MIRROR = "https://bgithub.xyz/SillyTavern/SillyTavern.git"
+
+function fatal {
+    param([string]$Message)
+    Write-Host "[FATAL] $Message" -ForegroundColor Red
+    Pause
+    exit 1
+}
+
+function warn {
+    param([string]$Message)
+    Write-Host "[WARN] $Message" -ForegroundColor Yellow
+}
+
+function ST_InstallDeps {
+    Write-Host "Checking for required dependencies..." -ForegroundColor Green
+
+    # Check for Git
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Host "Git not detected. Please install Git from https://git-scm.com/download/win and re-run this script." -ForegroundColor Red
+        fatal "Git not found."
+    }
+
+    # Check for Node.js and npm
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+        Write-Host "Node.js not detected. Please install Node.js from https://nodejs.org/en/download/ and re-run this script." -ForegroundColor Red
+        fatal "Node.js not found."
+    }
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Write-Host "npm (Node Package Manager) not found. It should be installed with Node.js." -ForegroundColor Red
+        fatal "npm not found."
+    }
+
+    # Check for Curl (usually available on Windows, but provides a warning just in case)
+    if (-not (Get-Command curl -ErrorAction SilentlyContinue)) {
+        warn "Curl not detected. It's usually available on Windows 10/11. If not, you might need to add it to your PATH."
+    }
+}
+
+function ST_Install {
+    ST_InstallDeps
+
+    Set-Location $env:USERPROFILE
+    Write-Host "Cloning SillyTavern from the main repository..." -ForegroundColor Green
+    try {
+        git clone $STREPO SillyTavern --branch=release --depth=1 -ErrorAction Stop
+    } catch {
+        warn "Unable to clone from the main repository."
+        warn "Now trying the mirror repository."
+        try {
+            git clone $STREPO_MIRROR SillyTavern --branch=release --depth=1 -ErrorAction Stop
+        } catch {
+            fatal "Unable to clone the source. Check your Internet connection first."
+        }
+    }
+
+    Set-Location "$env:USERPROFILE\SillyTavern"
+    Write-Host "Downloading STH.ps..." -ForegroundColor Green
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ManyFastScripts/SillyTavernHelper/refs/heads/main/STH.ps" -OutFile "STH.ps"
+
+    Write-Host "`nTo start SillyTavern, you can use this PowerShell script with the ""start"" command." -ForegroundColor Cyan
+    Write-Host "`nExample (from PowerShell):" -ForegroundColor Cyan
+    Write-Host "cd ""$(Split-Path -Parent $MyInvocation.MyCommand.Definition)""" -ForegroundColor Cyan
+    Write-Host ".\$(Split-Path -Leaf $MyInvocation.MyCommand.Definition) start" -ForegroundColor Cyan
+}
+
+function ST_Update {
+    Set-Location "$env:USERPROFILE\SillyTavern"
+    Write-Host "Resetting Git repository and pulling latest changes..." -ForegroundColor Green
+    git reset --hard
+    git pull
+}
+
+function ST_Prepare {
+    Set-Location "$env:USERPROFILE\SillyTavern"
+    Write-Host "Setting npm registry to npmmirror.com..." -ForegroundColor Green
+    npm config set registry https://registry.npmmirror.com
+    Write-Host "Installing npm dependencies..." -ForegroundColor Green
+    npm install
+    if ($LASTEXITCODE -ne 0) {
+        fatal "npm install failed! Check your Node.js and npm installation."
+    }
+}
+
+function ST_Start {
+    ST_Prepare
+    Set-Location "$env:USERPROFILE\SillyTavern"
+    Write-Host "Starting SillyTavern..." -ForegroundColor Green
+    npm run start
+}
+
+# Main script logic
+if ($args.Count -eq 0) {
+    Write-Host "Usage: $($MyInvocation.MyCommand.Definition) [command]" -ForegroundColor Yellow
+    Write-Host "Commands:" -ForegroundColor Yellow
+    Write-Host "  install   - Installs SillyTavern and its dependencies." -ForegroundColor Yellow
+    Write-Host "  update    - Updates SillyTavern to the latest version." -ForegroundColor Yellow
+    Write-Host "  prepare   - Prepares SillyTavern by installing npm dependencies." -ForegroundColor Yellow
+    Write-Host "  start     - Starts SillyTavern." -ForegroundColor Yellow
+    exit 0
+}
+
+switch ($args[0]) {
+    "install" { ST_Install }
+    "update" { ST_Update }
+    "prepare" { ST_Prepare }
+    "start" { ST_Start }
+    default {
+        Write-Host "Unknown command: $($args[0])" -ForegroundColor Red
+        exit 1
+    }
+}
