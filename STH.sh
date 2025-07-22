@@ -33,7 +33,7 @@ ST_installDeps() {
 
         if [[ -n "${TERMUX_VERSION}" ]]; then
             info "Termux detected. Now installing missing dependencies..."
-            pkg install -i -y nodejs git curl || fatal "Unable to install missing dependencies. Abort."
+            pkg install -y nodejs git curl || fatal "Unable to install missing dependencies. Abort."
         else
             fatal "Install these dependencies first."
         fi
