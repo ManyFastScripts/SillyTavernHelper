@@ -55,9 +55,9 @@ ST_install() {
     cd ${HOME}/SillyTavern
     curl -LO https://raw.githubusercontent.com/ManyFastScripts/SillyTavernHelper/refs/heads/main/STH.sh
     chmod +x STH.sh
-    echo "To start SillyTavern, use the command below:"
-    echo ""
-    echo 'cd ${HOME}/SillyTavern && ./STH.sh start'
+    info "To start SillyTavern, use the command below:"
+    info ""
+    info 'cd ${HOME}/SillyTavern && ./STH.sh start'
 }
 
 ST_update() {
