@@ -6,24 +6,44 @@ STREPO="https://github.com/SillyTavern/SillyTavern.git"
 STREPO_MIRROR="https://bgithub.xyz/SillyTavern/SillyTavern.git"
 
 fatal() {
-    echo -e "\033[1;31m[FATAL] ${1}\033[0m"
+    echo -e "\033[1;31m[STH FATAL] ${*}\033[0m"
     exit 1
 }
 
-warn(){
-    echo -e "\033[1;33m[WARN] ${1}\033[0m"
+warn() {
+    echo -e "\033[1;33m[STH WARN] ${*}\033[0m"
+}
+
+info() {
+    echo -e "\033[40;34m[STH INFO] ${*}\033[0m"
 }
 
 ST_installDeps() {
-    for i in git nodejs curl; do
+    local MISSING_DEPS=()
+    for i in git node curl; do
         if ! (command -v ${i} >/dev/null 2>&1); then
-            echo "${i} is not installed. Now installing..."
-            pkg i -y ${i}
+            warn "${i} is not installed."
+            MISSING_DEPS+=("${i}")
         fi
     done
+
+    if [[ ${#MISSING_DEPS[@]} -ne 0 ]]; then
+        warn "${#MISSING_DEPS[@]} out of 3 is not installed."
+        warn "Missing dependencies: ${MISSING_DEPS[*]}"
+
+        if [[ -n "${TERMUX_VERSION}" ]]; then
+            info "Termux detected. Now installing missing dependencies..."
+            pkg install -i -y nodejs git curl || fatal "Unable to install missing dependencies. Abort."
+        else
+            fatal "Install these dependencies first."
+        fi
+
+    fi
+    info "Dependencies check passed."
 }
 
 ST_install() {
+    ST_installDeps
     cd ${HOME}
     if ! (git clone ${STREPO} SillyTavern --branch=release --depth=1); then
         warn "Unable to clone from main repository."
